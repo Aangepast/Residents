@@ -1,0 +1,8 @@
+name: Residents
+version: '${project.version}'
+main: dev.aangepast.residents.Main
+api-version: 1.19
+depend: [Citizens]
+commands:
+  resident:
+    usage: /<command>
