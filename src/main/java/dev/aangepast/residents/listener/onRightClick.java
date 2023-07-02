@@ -29,12 +29,13 @@ public class onRightClick implements Listener {
                 if(resident.getNpc().equals(npc)){
 
                     if(plugin.inventoryManager.getInteracting().containsValue(resident)){
-                        e.getClicker().sendMessage(ChatColor.RED + "This villager is already interacting with someone else.");
+                        e.getClicker().sendMessage(ChatColor.RED + "Deze resident heeft momenteel met iemand anders een interactie.");
                         return;
                     }
 
                     plugin.inventoryManager.getInteracting().put(e.getClicker(), resident);
                     residentInventory.openInventory(e.getClicker(), resident);
+                    e.getClicker().sendMessage(ChatColor.GRAY + ChatColor.ITALIC.toString() + "Let op: de inventory van de resident kan niet worden veranderd zolang je de inventory hebt geopend.");
                     break;
                 }
             }
