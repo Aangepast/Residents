@@ -2,6 +2,9 @@ package dev.aangepast.residents.components;
 
 import net.citizensnpcs.api.npc.NPC;
 import org.bukkit.Location;
+import org.bukkit.inventory.ItemStack;
+
+import java.util.HashMap;
 
 public class Resident {
 
@@ -11,6 +14,7 @@ public class Resident {
     private NPC npc;
     private int ID;
     Location spawnLocation;
+    private HashMap<Integer, ItemStack> inventory;
 
     public Resident(String name, WorkingClass workingClass, NPC npc, int id, Location spawnLocation){
         this.name = name;
@@ -62,5 +66,13 @@ public class Resident {
 
     public void setGoingHome(boolean goingHome) {
         this.goingHome = goingHome;
+    }
+
+    public HashMap<Integer, ItemStack> getInventory() {
+        return inventory;
+    }
+
+    public void setInventory(HashMap<Integer, ItemStack> inventory) {
+        this.inventory = inventory;
     }
 }

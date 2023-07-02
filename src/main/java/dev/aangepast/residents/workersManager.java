@@ -3,6 +3,7 @@ package dev.aangepast.residents;
 import dev.aangepast.residents.components.Resident;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
+import org.bukkit.inventory.ItemStack;
 
 import java.io.File;
 import java.io.IOException;
@@ -30,6 +31,11 @@ public class workersManager {
         config.set(resident.getID()+".y", resident.getSpawnLocation().getBlockY());
         config.set(resident.getID()+".z", resident.getSpawnLocation().getBlockZ());
         config.set(resident.getID()+".world", resident.getSpawnLocation().getWorld().getName());
+
+        for(int i : resident.getInventory().keySet()){
+            config.set(resident.getID()+".inventory."+i, resident.getInventory().get(i));
+        }
+
         try {
             config.save(file);
         } catch (IOException e) {

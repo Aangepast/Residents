@@ -4,7 +4,6 @@ import dev.aangepast.residents.Main;
 import dev.aangepast.residents.components.Resident;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
-import org.bukkit.entity.Cow;
 import org.bukkit.entity.EntityType;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;

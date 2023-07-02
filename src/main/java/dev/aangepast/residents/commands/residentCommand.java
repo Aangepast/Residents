@@ -16,6 +16,8 @@ import org.bukkit.entity.Player;
 import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.ItemStack;
 
+import java.util.HashMap;
+
 public class residentCommand implements CommandExecutor {
 
     private Main plugin;
@@ -43,6 +45,7 @@ public class residentCommand implements CommandExecutor {
                 npc.setProtected(false);
                 npc.spawn(player.getLocation());
                 Resident resident = new Resident("Butcher", WorkingClass.BUTCHER, npc, plugin.useID(), player.getLocation());
+                resident.setInventory(new HashMap<>());
                 plugin.workersManager.getResidents().add(resident);
                 player.sendMessage(ChatColor.GREEN + "Spawned a resident at your location.");
                 plugin.workersManager.saveResident(resident, plugin);
@@ -56,6 +59,7 @@ public class residentCommand implements CommandExecutor {
                 npc.setProtected(false);
                 npc.spawn(player.getLocation());
                 Resident resident = new Resident("Resident", WorkingClass.CITIZEN, npc, plugin.useID(), player.getLocation());
+                resident.setInventory(new HashMap<>());
                 plugin.workersManager.getResidents().add(resident);
                 player.sendMessage(ChatColor.GREEN + "Spawned citizen at your location");
                 plugin.workersManager.saveResident(resident, plugin);

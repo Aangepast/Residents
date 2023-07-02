@@ -4,6 +4,8 @@ import dev.aangepast.residents.commands.residentCommand;
 import dev.aangepast.residents.components.Resident;
 import dev.aangepast.residents.components.WorkingClass;
 import dev.aangepast.residents.listener.entityDeathEvent;
+import dev.aangepast.residents.listener.inventoryClose;
+import dev.aangepast.residents.listener.onRightClick;
 import net.citizensnpcs.api.CitizensAPI;
 import net.citizensnpcs.api.npc.NPC;
 import org.bukkit.*;
@@ -11,15 +13,13 @@ import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.EntityType;
+import org.bukkit.entity.Player;
 import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import java.io.File;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Random;
-import java.util.UUID;
+import java.util.*;
 
 public final class Main extends JavaPlugin {
 
@@ -27,6 +27,7 @@ public final class Main extends JavaPlugin {
     public World world;
     public int currentResidentID;
     public Random random;
+    public inventoryManager inventoryManager;
 
     @Override
     public void onEnable() {
@@ -35,6 +36,8 @@ public final class Main extends JavaPlugin {
         this.workersManager = new workersManager();
         workersManager.setResidents(new ArrayList<>());
         this.random = new Random();
+        this.inventoryManager = new inventoryManager();
+        inventoryManager.setInteracting(new HashMap<Player, Resident>());
         String worldName = getConfig().getString("world");
 
         if(worldName == null){
@@ -48,6 +51,8 @@ public final class Main extends JavaPlugin {
 
         Bukkit.getPluginCommand("resident").setExecutor(new residentCommand(this));
         Bukkit.getPluginManager().registerEvents(new entityDeathEvent(this),this);
+        Bukkit.getPluginManager().registerEvents(new onRightClick(this),this);
+        Bukkit.getPluginManager().registerEvents(new inventoryClose(this),this);
 
         loadResidents(this);
         runResidents(this);
@@ -76,8 +81,12 @@ public final class Main extends JavaPlugin {
                         continue;
                     }
 
+                    if(!resident.getNpc().isSpawned()){
+                        deleteResident(resident, plugin);
+                        continue;
+                    }
+
                     if(resident.isGoingHome()){
-                        setResidentStatus(resident, "Going home");
                         resident.getNpc().getNavigator().setTarget(resident.getSpawnLocation());
                         continue;
                     }
@@ -171,6 +180,14 @@ public final class Main extends JavaPlugin {
                     String name = ChatColor.GREEN + "Resident";
                     World world = Bukkit.getWorld(config.getString(key + ".world"));
 
+                    HashMap<Integer, ItemStack> inventory = new HashMap<>();
+
+                    for(int i = 0; i<28;i++){
+                        if(config.getItemStack(key+".inventory."+i) != null){
+                            inventory.put(i,config.getItemStack(key+".inventory."+i));
+                        }
+                    }
+
                     if (world == null) {
                         plugin.getLogger().warning("WORLD OF RESIDENTS IS NOT FOUND, DISABLING PLUGIN...");
                         Bukkit.getPluginManager().disablePlugin(plugin);
@@ -186,6 +203,7 @@ public final class Main extends JavaPlugin {
                     }
 
                     Resident resident = new Resident(name, skill, CitizensAPI.getNPCRegistry().getByUniqueId(uuid), Integer.parseInt(key), spawnLocation);
+                    resident.setInventory(inventory);
                     plugin.workersManager.getResidents().add(resident);
                 }
             }
@@ -214,30 +232,16 @@ public final class Main extends JavaPlugin {
 
         // Kill nearest animal
         if(entityToKill != null && distance < 10.0){
+            setResidentStatus(resident, "Searching for animal");
             final Entity finalEntityToKill = entityToKill;
             Bukkit.getScheduler().runTaskLater(this, new Runnable() {
                 @Override
                 public void run() {
-                    setResidentStatus(resident, "Searching for animal");
                     killEntity(resident, finalEntityToKill, plugin);
                 }
             }, 20*3);
         }
 
-    }
-
-
-    public boolean waitForButcher(Resident resident, Entity entityToKill){
-
-        if(resident.getNpc().getNavigator().isNavigating()){
-            Bukkit.getScheduler().runTaskLater(this, new Runnable() {
-                @Override
-                public void run() {
-                    waitForButcher(resident, entityToKill);
-                }
-            }, 10);
-        }
-        return true;
     }
 
     public void deleteResident(Resident resident, Main plugin){
@@ -276,24 +280,62 @@ public final class Main extends JavaPlugin {
 
     public void killEntity(Resident resident, Entity entity, Main plugin){
         resident.getNpc().getNavigator().setTarget(entity.getLocation());
+        setResidentStatus(resident, "Killing animal");
 
-        if(waitForButcher(resident, entity)){
+        Bukkit.getScheduler().runTaskLater(plugin, new Runnable() {
+            @Override
+            public void run() {
 
-            setResidentStatus(resident, "Killing animal");
-
-            Bukkit.getScheduler().runTaskLater(plugin, new Runnable() {
-                @Override
-                public void run() {
-                    EntityDamageEvent event = new EntityDamageEvent(entity, EntityDamageEvent.DamageCause.LIGHTNING, 100);
-                    entity.setLastDamageCause(event);
-                    entity.remove();
-                    World world = entity.getWorld();
-                    ItemStack redstoneBlock = new ItemStack(Material.REDSTONE_BLOCK, 1);
-                    world.spawnParticle(Particle.ITEM_CRACK, entity.getLocation(), 20, redstoneBlock);
-                    world.playSound(entity.getLocation(), "entity.player.attack.strong",1,1);
+                if (resident.getNpc().getNavigator().isNavigating()) {
+                    return;
                 }
+
+                EntityDamageEvent event = new EntityDamageEvent(entity, EntityDamageEvent.DamageCause.LIGHTNING, 100);
+                entity.setLastDamageCause(event);
+                World world = entity.getWorld();
+                List<ItemStack> drops = null;
+                switch (entity.getType()){
+                case CHICKEN:
+                    drops.add(new ItemStack(Material.FEATHER, 1));
+                    drops.add(new ItemStack(Material.CHICKEN, 2));
+                    break;
+                case PIG:
+                    drops.add(new ItemStack(Material.PORKCHOP, 2));
+                    break;
+                case COW:
+                    drops.add(new ItemStack(Material.LEATHER, 2));
+                    drops.add(new ItemStack(Material.BEEF, 1));
+                    break;
+                case SHEEP:
+                    drops.add(new ItemStack(Material.MUTTON, 2));
+                    drops.add(new ItemStack(Material.WHITE_WOOL, 1));
+                    break;
+                }
+
+                if(drops == null){
+                    return;
+                }
+
+                for(ItemStack drop : drops) { // doe loop opnieuw dit gaat error geven want je probeert drop uit de lijst te halen terwijl hij geloopt wordt
+                    for (int i = 0; i < 27; i++) {
+                        if (resident.getInventory().get(i) == null) {
+                            resident.getInventory().put(i, drop);
+                            drops.remove(drop);
+                        }
+                    }
+                }
+                if(!drops.isEmpty()){
+                    Location dropLocation = resident.getNpc().getStoredLocation();
+                    for(ItemStack restDrop : drops){
+                        dropLocation.getWorld().dropItemNaturally(dropLocation, restDrop);
+                    }
+                }
+
+                ItemStack redstoneBlock = new ItemStack(Material.REDSTONE_BLOCK, 1);
+                world.spawnParticle(Particle.ITEM_CRACK, entity.getLocation(), 25, redstoneBlock);
+                world.playSound(entity.getLocation(), "entity.player.attack.strong",1,1);
+            }
             }, 20*5);
-        }
     }
 
     public boolean isDay(World world) {
