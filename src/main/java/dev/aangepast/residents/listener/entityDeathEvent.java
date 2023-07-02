@@ -25,6 +25,9 @@ public class entityDeathEvent implements Listener {
             Resident killed = null;
             for (Resident resident : plugin.workersManager.getResidents()){
                 if(!resident.getNpc().isSpawned()){
+                    for(ItemStack item : resident.getInventory().values()){
+                        resident.getNpc().getStoredLocation().getWorld().dropItemNaturally(resident.getNpc().getStoredLocation(), item);
+                    }
                     plugin.workersManager.removeResident(resident, plugin);
                     resident.getNpc().destroy();
                     killed = resident;
@@ -36,27 +39,6 @@ public class entityDeathEvent implements Listener {
             }
             if(killed != null){
                 plugin.workersManager.removeResident(killed,plugin);
-            }
-        } else if (e.getEntity().getType().equals(EntityType.COW) || e.getEntity().getType().equals(EntityType.PIG) || e.getEntity().getType().equals(EntityType.SHEEP) || e.getEntity().getType().equals(EntityType.CHICKEN)){
-            if(e.getEntity().getLastDamageCause() != null){
-                if(e.getEntity().getLastDamageCause().getCause().equals(EntityDamageEvent.DamageCause.LIGHTNING)){
-                    switch(e.getEntity().getType()){
-                        case PIG:
-                            e.getDrops().add(new ItemStack(Material.PORKCHOP, 2));
-                            break;
-                        case COW:
-                            e.getDrops().add(new ItemStack(Material.BEEF, 2));
-                            break;
-                        case SHEEP:
-                            e.getDrops().add(new ItemStack(Material.MUTTON, 2));
-                            e.getDrops().add(new ItemStack(Material.WHITE_WOOL, 1));
-                            break;
-                        case CHICKEN:
-                            e.getDrops().add(new ItemStack(Material.CHICKEN, 1));
-                            e.getDrops().add(new ItemStack(Material.FEATHER, 1));
-                            break;
-                    }
-                }
             }
         }
     }

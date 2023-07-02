@@ -55,7 +55,8 @@ public final class Main extends JavaPlugin {
         Bukkit.getPluginManager().registerEvents(new inventoryClose(this),this);
 
         loadResidents(this);
-        runResidents(this);
+        awaitResidents(this);
+
 
     }
 
@@ -68,6 +69,15 @@ public final class Main extends JavaPlugin {
             workersManager.saveResident(resident, this);
         }
 
+    }
+
+    public void awaitResidents(Main plugin){
+        Bukkit.getScheduler().runTaskLater(plugin, new Runnable() {
+            @Override
+            public void run() {
+                runResidents(plugin);
+            }
+        }, 20*3);
     }
 
     public void runResidents(Main plugin){
@@ -177,7 +187,7 @@ public final class Main extends JavaPlugin {
                     UUID uuid = UUID.fromString(config.getString(key + ".npc"));
                     String skillRaw = config.getString(key + ".type");
                     WorkingClass skill = WorkingClass.CITIZEN;
-                    String name = ChatColor.GREEN + "Resident";
+                    String name = ChatColor.LIGHT_PURPLE + "Resident";
                     World world = Bukkit.getWorld(config.getString(key + ".world"));
 
                     HashMap<Integer, ItemStack> inventory = new HashMap<>();
@@ -292,47 +302,59 @@ public final class Main extends JavaPlugin {
 
                 EntityDamageEvent event = new EntityDamageEvent(entity, EntityDamageEvent.DamageCause.LIGHTNING, 100);
                 entity.setLastDamageCause(event);
+                entity.remove();
                 World world = entity.getWorld();
-                List<ItemStack> drops = null;
-                switch (entity.getType()){
-                case CHICKEN:
-                    drops.add(new ItemStack(Material.FEATHER, 1));
-                    drops.add(new ItemStack(Material.CHICKEN, 2));
-                    break;
-                case PIG:
-                    drops.add(new ItemStack(Material.PORKCHOP, 2));
-                    break;
-                case COW:
-                    drops.add(new ItemStack(Material.LEATHER, 2));
-                    drops.add(new ItemStack(Material.BEEF, 1));
-                    break;
-                case SHEEP:
-                    drops.add(new ItemStack(Material.MUTTON, 2));
-                    drops.add(new ItemStack(Material.WHITE_WOOL, 1));
-                    break;
+                List<ItemStack> drops = new ArrayList<>();
+                switch (entity.getType()) {
+                    case CHICKEN:
+                        drops.add(new ItemStack(Material.FEATHER, 1));
+                        drops.add(new ItemStack(Material.CHICKEN, 2));
+                        break;
+                    case PIG:
+                        drops.add(new ItemStack(Material.PORKCHOP, 2));
+                        break;
+                    case COW:
+                        drops.add(new ItemStack(Material.LEATHER, 2));
+                        drops.add(new ItemStack(Material.BEEF, 1));
+                        break;
+                    case SHEEP:
+                        drops.add(new ItemStack(Material.MUTTON, 2));
+                        drops.add(new ItemStack(Material.WHITE_WOOL, 1));
+                        break;
                 }
+                boolean isSet = false;
+                // Loop elke drop
+                for (ItemStack drop : drops){
+                    // Loop elke item in de inventory van de villager
+                    for (ItemStack item : resident.getInventory().values()) {
 
-                if(drops == null){
-                    return;
-                }
+                        if(isSet){
+                            break;
+                        }
 
-                for(ItemStack drop : drops) { // doe loop opnieuw dit gaat error geven want je probeert drop uit de lijst te halen terwijl hij geloopt wordt
-                    for (int i = 0; i < 27; i++) {
-                        if (resident.getInventory().get(i) == null) {
+                        if (item.getAmount() + drop.getAmount() < item.getMaxStackSize()) {
+                            // Het past dus toevoegen
+                            item.setAmount(item.getAmount() + drop.getAmount());
+                            isSet = true;
+                            break;
+                        }
+
+                    }
+                    // Kan nergens toevoegen, kijken naar lege slots
+                    for(int i = 0; i < 27; i++){
+                        // Slot is leeg, dus kun je item neer gooien
+                        if(resident.getInventory().get(i) == null){
                             resident.getInventory().put(i, drop);
-                            drops.remove(drop);
+                            break;
                         }
                     }
-                }
-                if(!drops.isEmpty()){
-                    Location dropLocation = resident.getNpc().getStoredLocation();
-                    for(ItemStack restDrop : drops){
-                        dropLocation.getWorld().dropItemNaturally(dropLocation, restDrop);
-                    }
+
+                    // geen plek meer in inventory dus droppen...
+                    resident.getNpc().getStoredLocation().getWorld().dropItemNaturally(resident.getNpc().getStoredLocation(), drop);
                 }
 
                 ItemStack redstoneBlock = new ItemStack(Material.REDSTONE_BLOCK, 1);
-                world.spawnParticle(Particle.ITEM_CRACK, entity.getLocation(), 25, redstoneBlock);
+                world.spawnParticle(Particle.ITEM_CRACK, entity.getLocation(), 15, redstoneBlock);
                 world.playSound(entity.getLocation(), "entity.player.attack.strong",1,1);
             }
             }, 20*5);
