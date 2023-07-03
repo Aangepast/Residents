@@ -3,9 +3,7 @@ package dev.aangepast.residents;
 import dev.aangepast.residents.commands.residentCommand;
 import dev.aangepast.residents.components.Resident;
 import dev.aangepast.residents.components.WorkingClass;
-import dev.aangepast.residents.listener.entityDeathEvent;
-import dev.aangepast.residents.listener.inventoryClose;
-import dev.aangepast.residents.listener.onRightClick;
+import dev.aangepast.residents.listener.*;
 import net.citizensnpcs.api.CitizensAPI;
 import net.citizensnpcs.api.npc.NPC;
 import org.bukkit.*;
@@ -53,6 +51,8 @@ public final class Main extends JavaPlugin {
         Bukkit.getPluginManager().registerEvents(new entityDeathEvent(this),this);
         Bukkit.getPluginManager().registerEvents(new onRightClick(this),this);
         Bukkit.getPluginManager().registerEvents(new inventoryClose(this),this);
+        Bukkit.getPluginManager().registerEvents(new onBlockPlace(this), this);
+        Bukkit.getPluginManager().registerEvents(new inventoryClick(this),this);
 
         loadResidents(this);
         awaitResidents(this);
@@ -108,10 +108,10 @@ public final class Main extends JavaPlugin {
                     if(!isDay(resident.getSpawnLocation().getWorld())){
                         if(resident.getNpc().getStoredLocation().distance(resident.getSpawnLocation()) > 3.0){
                             sendResidentToHome(resident,plugin);
-                            setResidentStatus(resident, "Going home");
+                            setResidentStatus(resident, "Naar huis");
                             continue;
                         }
-                        setResidentStatus(resident, "Sleeping");
+                        setResidentStatus(resident, "Slapen");
                         continue;
                     }
 
@@ -125,8 +125,7 @@ public final class Main extends JavaPlugin {
                     }
 
                     if(getChance(97)){
-                        getLogger().info("Going home");
-                        setResidentStatus(resident, "Going home");
+                        setResidentStatus(resident, "Naar huis");
                         sendResidentToHome(resident, plugin);
                     }
 
@@ -142,10 +141,10 @@ public final class Main extends JavaPlugin {
                         int y = random.nextInt(-3, 3);
                         npcLocation.add(x,y,z);
                         resident.getNpc().getNavigator().setTarget(npcLocation);
-                        setResidentStatus(resident, "Walking");
+                        setResidentStatus(resident, "Rondlopen");
                         continue;
                     }
-                    setResidentStatus(resident, "Idling");
+                    setResidentStatus(resident, "Rusten");
                 }
             }
         }, 30, 30);
@@ -187,7 +186,7 @@ public final class Main extends JavaPlugin {
                     UUID uuid = UUID.fromString(config.getString(key + ".npc"));
                     String skillRaw = config.getString(key + ".type");
                     WorkingClass skill = WorkingClass.CITIZEN;
-                    String name = ChatColor.LIGHT_PURPLE + "Resident";
+                    String name = ChatColor.LIGHT_PURPLE + "Inwoner";
                     World world = Bukkit.getWorld(config.getString(key + ".world"));
 
                     HashMap<Integer, ItemStack> inventory = new HashMap<>();
@@ -206,9 +205,9 @@ public final class Main extends JavaPlugin {
                     Location spawnLocation = new Location(world, config.getInt(key + "x"), config.getInt(key + "y"), config.getInt(key + "z"));
 
                     if (skillRaw != null) {
-                        if (skillRaw.equals("Butcher")) {
+                        if (skillRaw.equalsIgnoreCase("Butcher")) {
                             skill = WorkingClass.BUTCHER;
-                            name = ChatColor.RED + ChatColor.BOLD.toString() + "Butcher";
+                            name = ChatColor.RED + ChatColor.BOLD.toString() + "Slager";
                         }
                     }
 
@@ -242,7 +241,6 @@ public final class Main extends JavaPlugin {
 
         // Kill nearest animal
         if(entityToKill != null && distance < 10.0){
-            setResidentStatus(resident, "Searching for animal");
             final Entity finalEntityToKill = entityToKill;
             Bukkit.getScheduler().runTaskLater(this, new Runnable() {
                 @Override
@@ -290,7 +288,7 @@ public final class Main extends JavaPlugin {
 
     public void killEntity(Resident resident, Entity entity, Main plugin){
         resident.getNpc().getNavigator().setTarget(entity.getLocation());
-        setResidentStatus(resident, "Killing animal");
+        setResidentStatus(resident, "Dier vermoorden");
 
         Bukkit.getScheduler().runTaskLater(plugin, new Runnable() {
             @Override
@@ -322,35 +320,30 @@ public final class Main extends JavaPlugin {
                         drops.add(new ItemStack(Material.WHITE_WOOL, 1));
                         break;
                 }
-                boolean isSet = false;
+                boolean isDropped = false;
                 // Loop elke drop
                 for (ItemStack drop : drops){
                     // Loop elke item in de inventory van de villager
-                    for (ItemStack item : resident.getInventory().values()) {
-
-                        if(isSet){
-                            break;
-                        }
-
-                        if (item.getAmount() + drop.getAmount() < item.getMaxStackSize()) {
-                            // Het past dus toevoegen
-                            item.setAmount(item.getAmount() + drop.getAmount());
-                            isSet = true;
-                            break;
-                        }
-
-                    }
-                    // Kan nergens toevoegen, kijken naar lege slots
                     for(int i = 0; i < 27; i++){
                         // Slot is leeg, dus kun je item neer gooien
                         if(resident.getInventory().get(i) == null){
                             resident.getInventory().put(i, drop);
+                            isDropped=true;
                             break;
+                        } else if (resident.getInventory().get(i).getType().equals(drop.getType())){
+                            if(resident.getInventory().get(i).getMaxStackSize() > resident.getInventory().get(i).getAmount() + drop.getAmount()){
+                                resident.getInventory().get(i).setAmount(resident.getInventory().get(i).getAmount() + drop.getAmount());
+                                isDropped=true;
+                                break;
+                            }
+                        } else {
+                            continue;
                         }
                     }
-
-                    // geen plek meer in inventory dus droppen...
-                    resident.getNpc().getStoredLocation().getWorld().dropItemNaturally(resident.getNpc().getStoredLocation(), drop);
+                    if(!isDropped){
+                        // geen plek meer in inventory dus droppen...
+                        resident.getNpc().getStoredLocation().getWorld().dropItemNaturally(resident.getNpc().getStoredLocation(), drop);
+                    }
                 }
 
                 ItemStack redstoneBlock = new ItemStack(Material.REDSTONE_BLOCK, 1);

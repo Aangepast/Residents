@@ -2,6 +2,7 @@ package dev.aangepast.residents.listener;
 
 import dev.aangepast.residents.Main;
 import dev.aangepast.residents.components.Resident;
+import org.bukkit.ChatColor;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
@@ -21,7 +22,7 @@ public class inventoryClose implements Listener {
 
     @EventHandler
     public void onInv(InventoryCloseEvent e){
-        if(e.getView().getTitle().equals("Resident inventory")){
+        if(e.getView().getTitle().equals("Inwoner inventaris")){
 
             Player player = (Player) e.getPlayer();
             Resident resident = plugin.inventoryManager.getInteracting().get(player);
@@ -39,6 +40,11 @@ public class inventoryClose implements Listener {
             plugin.inventoryManager.getInteracting().remove(player);
             plugin.workersManager.saveResident(resident, plugin);
 
+        } else if (e.getView().getTitle().equals("Verander vaardigheid")){
+            Player player = (Player) e.getPlayer();
+            plugin.workersManager.saveResident(plugin.inventoryManager.getInteracting().get(player), plugin);
+            plugin.inventoryManager.getInteracting().remove(player);
+            player.sendMessage(ChatColor.GRAY + "Vaardigheid opgeslagen.");
         }
     }
 

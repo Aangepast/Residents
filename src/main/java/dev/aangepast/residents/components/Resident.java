@@ -13,6 +13,7 @@ public class Resident {
     private WorkingClass skill;
     private NPC npc;
     private int ID;
+    private Location bedLocation;
     Location spawnLocation;
     private HashMap<Integer, ItemStack> inventory;
 
@@ -74,5 +75,13 @@ public class Resident {
 
     public void setInventory(HashMap<Integer, ItemStack> inventory) {
         this.inventory = inventory;
+    }
+
+    public Location getBedLocation() {
+        return bedLocation;
+    }
+
+    public void setBedLocation(Location bedLocation) {
+        this.bedLocation = bedLocation;
     }
 }

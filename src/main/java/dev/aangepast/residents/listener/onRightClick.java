@@ -2,6 +2,7 @@ package dev.aangepast.residents.listener;
 
 import dev.aangepast.residents.Main;
 import dev.aangepast.residents.components.Resident;
+import dev.aangepast.residents.inventories.classInventory;
 import dev.aangepast.residents.inventories.residentInventory;
 import net.citizensnpcs.api.event.NPCRightClickEvent;
 import net.citizensnpcs.api.npc.NPC;
@@ -19,7 +20,8 @@ public class onRightClick implements Listener {
 
     @EventHandler
     public void onRightClickNPC(NPCRightClickEvent e){
-        if(e.getNPC().getName().contains("Butcher") || e.getNPC().getName().contains("Resident")){
+
+        if(e.getNPC().getName().contains("Slager") || e.getNPC().getName().contains("Inwoner")){
 
             e.setCancelled(true);
 
@@ -33,9 +35,15 @@ public class onRightClick implements Listener {
                         return;
                     }
 
+                    if(e.getClicker().isSneaking()){
+                        classInventory.openClassInventory(e.getClicker());
+                        plugin.inventoryManager.getInteracting().put(e.getClicker(), resident);
+                        return;
+                    }
+
                     plugin.inventoryManager.getInteracting().put(e.getClicker(), resident);
                     residentInventory.openInventory(e.getClicker(), resident);
-                    e.getClicker().sendMessage(ChatColor.GRAY + ChatColor.ITALIC.toString() + "Let op: de inventory van de resident kan niet worden veranderd zolang je de inventory hebt geopend.");
+                    e.getClicker().sendMessage(ChatColor.GRAY + ChatColor.ITALIC.toString() + "Let op: de inventory van de resident kan niet worden veranderd door externe factoren zolang je de inventory hebt geopend.");
                     break;
                 }
             }

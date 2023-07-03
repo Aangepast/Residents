@@ -15,8 +15,11 @@ import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.meta.ItemMeta;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 
 public class residentCommand implements CommandExecutor {
 
@@ -40,11 +43,11 @@ public class residentCommand implements CommandExecutor {
 
         if(args[0].equalsIgnoreCase("spawn")) {
             if (args[1].equalsIgnoreCase("Butcher")) {
-                NPC npc = CitizensAPI.getNPCRegistry().createNPC(EntityType.VILLAGER, ChatColor.RED + "Butcher");
+                NPC npc = CitizensAPI.getNPCRegistry().createNPC(EntityType.VILLAGER, ChatColor.RED + "Slager");
                 npc.setAlwaysUseNameHologram(false);
                 npc.setProtected(false);
                 npc.spawn(player.getLocation());
-                Resident resident = new Resident("Butcher", WorkingClass.BUTCHER, npc, plugin.useID(), player.getLocation());
+                Resident resident = new Resident("Slager", WorkingClass.BUTCHER, npc, plugin.useID(), player.getLocation());
                 resident.setInventory(new HashMap<>());
                 plugin.workersManager.getResidents().add(resident);
                 player.sendMessage(ChatColor.GREEN + "Spawned a resident at your location.");
@@ -54,11 +57,11 @@ public class residentCommand implements CommandExecutor {
                 entity.getEquipment().setItem(EquipmentSlot.HAND, new ItemStack(Material.IRON_AXE, 1));
 
             } else if (args[1].equalsIgnoreCase("resident")) {
-                NPC npc = CitizensAPI.getNPCRegistry().createNPC(EntityType.VILLAGER, ChatColor.LIGHT_PURPLE + "Resident");
+                NPC npc = CitizensAPI.getNPCRegistry().createNPC(EntityType.VILLAGER, ChatColor.LIGHT_PURPLE + "Inwoner");
                 npc.setAlwaysUseNameHologram(false);
                 npc.setProtected(false);
                 npc.spawn(player.getLocation());
-                Resident resident = new Resident("Resident", WorkingClass.CITIZEN, npc, plugin.useID(), player.getLocation());
+                Resident resident = new Resident("Inwoner", WorkingClass.CITIZEN, npc, plugin.useID(), player.getLocation());
                 resident.setInventory(new HashMap<>());
                 plugin.workersManager.getResidents().add(resident);
                 player.sendMessage(ChatColor.GREEN + "Spawned citizen at your location");
@@ -68,16 +71,16 @@ public class residentCommand implements CommandExecutor {
             double distance = 100.0;
             Resident closestResident = null;
 
-            for (Resident resident : plugin.workersManager.getResidents()){
+            for (Resident resident : plugin.workersManager.getResidents()) {
 
-                if(distance > resident.getNpc().getStoredLocation().distance(player.getLocation())){
+                if (distance > resident.getNpc().getStoredLocation().distance(player.getLocation())) {
                     distance = resident.getNpc().getStoredLocation().distance(player.getLocation());
                     closestResident = resident;
                 }
             }
 
-            if(closestResident == null){
-                player.sendMessage(ChatColor.RED + "No Resident found in range of you to despawn.");
+            if (closestResident == null) {
+                player.sendMessage(ChatColor.RED + "No resident found in range of you to despawn.");
                 return true;
             }
 
@@ -85,6 +88,22 @@ public class residentCommand implements CommandExecutor {
             plugin.workersManager.removeResident(closestResident, plugin);
             player.sendMessage(ChatColor.GREEN + "Successfully deleted the nearest resident.");
 
+        } else if (args[0].equalsIgnoreCase("bed")) {
+            ItemStack bed = new ItemStack(Material.RED_BED, 1);
+            ItemMeta meta = bed.getItemMeta();
+            meta.setDisplayName(ChatColor.AQUA + "Inwoners bed");
+            List<String> lore = new ArrayList<>();
+            lore.add(ChatColor.GRAY + "Bij plaatsing van dit bed zal er");
+            lore.add(ChatColor.GRAY + "een inwoner komen en dit bed gebruiken.");
+            meta.setLore(lore);
+            bed.setItemMeta(meta);
+            player.getInventory().addItem(bed);
+            player.sendMessage(ChatColor.GREEN + "You have been given a resident bed.");
+
+        } else if (args[0].equalsIgnoreCase("reload")){
+            player.sendMessage(ChatColor.GREEN + "Reloading conifg...");
+            plugin.reloadConfig();
+            player.sendMessage(ChatColor.GREEN + "Reloaded config!");
 
         } else {
             player.sendMessage(ChatColor.RED + "Incorrect command. Try again. /resident spawn [type]");
